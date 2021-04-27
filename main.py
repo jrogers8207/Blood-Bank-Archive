@@ -91,7 +91,8 @@ layout = [
     [sg.Combo(["Donor", "Patient", "Transaction"], enable_events=True, key="changeLayout", default_value="Donor")],
     [sg.Column(donorLayout, visible=True, key="Donor"), sg.Column(patientLayout, visible=False, key="Patient"),
      sg.Column(transactionLayout, visible=False, key="Transaction")],
-    [sg.Button("Add"), sg.Button("Search"), sg.Button("Find Matching Donation")],
+    [sg.Button("Add"), sg.Button("Search"), sg.Button("Update"),
+     sg.Button("Delete"), sg.Button("Find Matching Donation")],
     [sg.Output(size=(100, 40))]
 ]
 
@@ -197,7 +198,6 @@ while True:
         if values["changeLayout"] != "Patient":
             print("Patient must be selected to search for match.")
         else:
-
             donations = cur.execute(
                 """SELECT * FROM BloodTransaction JOIN Donor ON BloodTransaction.DonorID = Donor.DonorID WHERE 
                 PatientID = ''""").fetchall()
@@ -218,6 +218,48 @@ while True:
             logging.debug(matches)
             print("\n" * 500)
             print(matches)
+
+    elif event == "Delete":
+        try:
+            if values["changeLayout"] == "Patient":
+                cur.execute("DELETE FROM Patient WHERE PatientID = ?", (int(values["patientID"]),))
+            elif values["changeLayout"] == "Donor":
+                cur.execute("DELETE FROM Donor WHERE DonorID = ?", (int(values["donorID"]),))
+            else:
+                cur.execute("DELETE FROM BloodTransaction WHERE TransactionID = ?", (int(values["transactionID"]),))
+            con.commit()
+        except:
+            print("Invalid ID.")
+    elif event == "Update":
+        try:
+            if values["changeLayout"] == "Donor":
+                cur.execute(
+                    "UPDATE Donor SET FirstName = ?, LastName = ?, Address = ?, Phone = ?, BloodType = ? WHERE DonorID = ?",
+                    (
+                        values["donorFirstName"], values["donorLastName"], values["donorAddress"],
+                        values["donorPhoneNumber"], values["donorBloodType"], int(values["donorID"])))
+                con.commit()
+            elif values["changeLayout"] == "Patient":
+                cur.execute(
+                    "UPDATE Patient SET FirstName = ?, LastName = ?, Address = ?, Phone = ?, BloodType = ? WHERE PatientID = ?",
+                    (
+                        values["patientFirstName"], values["patientLastName"], values["patientAddress"],
+                        values["patientPhoneNumber"], values["patientBloodType"], int(values["patientID"])))
+                con.commit()
+            elif values["changeLayout"] == "Transaction":
+                cur.execute(
+                    "UPDATE BloodTransaction SET DonorID = ?, PatientID = ?, Amount = ?, TransactionDate = ?, TransactionType = ? WHERE BloodTransactionID = ?",
+                    (
+                        int(values["transactionDonorID"]), int(values["transactionPatientID"]), int(values["transactionAmount"]),
+                        values["transactionDate"], values["transactionType"], int(values["transactionID"])))
+            con.commit()
+        except sqlite3.OperationalError:
+            print("Not all forms filled.")
+        except:
+            print("Invalid ID.")
+
+
+
     elif event == sg.WIN_CLOSED:
         break
 
